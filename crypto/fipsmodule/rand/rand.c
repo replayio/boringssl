@@ -44,7 +44,7 @@ static void* LookupRecordReplaySymbol(const char* name) {
   HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
   void* fnptr = module ? (void*)GetProcAddress(module, name) : nullptr;
 #endif
-  return fnptr ? fnptr : reinterpret_cast<void*>(1);
+  return fnptr ? fnptr : (void*)1;
 }
 
 static void RecordReplayAssert(const char* aFormat, ...) {
@@ -52,10 +52,10 @@ static void RecordReplayAssert(const char* aFormat, ...) {
   if (!fnptr) {
     fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
   }
-  if (fnptr != reinterpret_cast<void*>(1)) {
+  if (fnptr != (void*)1) {
     va_list ap;
     va_start(ap, aFormat);
-    reinterpret_cast<void(*)(const char*, va_list)>(fnptr)(aFormat, ap);
+    (void(*)(const char*, va_list))(fnptr)(aFormat, ap);
     va_end(ap);
   }
 }
