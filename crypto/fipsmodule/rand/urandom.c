@@ -75,6 +75,34 @@
 #include "../delocate.h"
 #include "../../internal.h"
 
+#ifndef _WIN32
+#include <dlfcn.h>
+#else
+#include <windows.h>
+#endif
+
+static void* LookupRecordReplaySymbol(const char* name) {
+#ifndef _WIN32
+  void* fnptr = dlsym(RTLD_DEFAULT, name);
+#else
+  HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
+  void* fnptr = module ? (void*)GetProcAddress(module, name) : nullptr;
+#endif
+  return fnptr ? fnptr : reinterpret_cast<void*>(1);
+}
+
+static void RecordReplayAssert(const char* aFormat, ...) {
+  static void* fnptr;
+  if (!fnptr) {
+    fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
+  }
+  if (fnptr != reinterpret_cast<void*>(1)) {
+    va_list ap;
+    va_start(ap, aFormat);
+    reinterpret_cast<void(*)(const char*, va_list)>(fnptr)(aFormat, ap);
+    va_end(ap);
+  }
+}
 
 #if defined(USE_NR_getrandom)
 
@@ -267,6 +295,8 @@ static void wait_for_entropy(void) {
 // If |seed| is one, this function will OR in the value of
 // |*extra_getrandom_flags_for_seed()| when using |getrandom|.
 static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
+  RecordReplayAssert("fill_with_entropy %zu %d %d", len, block, seed);
+
   if (len == 0) {
     return 1;
   }
@@ -295,6 +325,8 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
   while (len > 0) {
     ssize_t r;
 
+    RecordReplayAssert("fill_with_entropy #1 %zu", len);
+
     if (*urandom_fd_bss_get() == kHaveGetrandom) {
 #if defined(USE_NR_getrandom)
       r = boringssl_getrandom(out, len, getrandom_flags);
@@ -304,6 +336,9 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
       if (__builtin_available(macos 10.12, *)) {
         // |getentropy| can only request 256 bytes at a time.
         size_t todo = len <= 256 ? len : 256;
+
+        RecordReplayAssert("fill_with_entropy #2 %zu", todo);
+
         if (getentropy(out, todo) != 0) {
           r = -1;
         } else {

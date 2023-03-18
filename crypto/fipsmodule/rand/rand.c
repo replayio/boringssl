@@ -31,6 +31,34 @@
 #include "../../internal.h"
 #include "../delocate.h"
 
+#ifndef _WIN32
+#include <dlfcn.h>
+#else
+#include <windows.h>
+#endif
+
+static void* LookupRecordReplaySymbol(const char* name) {
+#ifndef _WIN32
+  void* fnptr = dlsym(RTLD_DEFAULT, name);
+#else
+  HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
+  void* fnptr = module ? (void*)GetProcAddress(module, name) : nullptr;
+#endif
+  return fnptr ? fnptr : reinterpret_cast<void*>(1);
+}
+
+static void RecordReplayAssert(const char* aFormat, ...) {
+  static void* fnptr;
+  if (!fnptr) {
+    fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
+  }
+  if (fnptr != reinterpret_cast<void*>(1)) {
+    va_list ap;
+    va_start(ap, aFormat);
+    reinterpret_cast<void(*)(const char*, va_list)>(fnptr)(aFormat, ap);
+    va_end(ap);
+  }
+}
 
 // It's assumed that the operating system always has an unfailing source of
 // entropy which is accessed via |CRYPTO_sysrand[_for_seed]|. (If the operating
@@ -330,6 +358,8 @@ void RAND_bytes_with_additional_data(uint8_t *out, size_t out_len,
   if (out_len == 0) {
     return;
   }
+
+  RecordReplayAssert("RAND_bytes_with_additional_data %zu", out_len);
 
   const uint64_t fork_generation = CRYPTO_get_fork_generation();
 
