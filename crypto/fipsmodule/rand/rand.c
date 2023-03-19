@@ -359,7 +359,7 @@ void RAND_bytes_with_additional_data(uint8_t *out, size_t out_len,
     return;
   }
 
-  RecordReplayAssert("RAND_bytes_with_additional_data %zu", out_len);
+  RecordReplayAssert("[RUN-1555-1556] RAND_bytes_with_additional_data %zu", out_len);
 
   const uint64_t fork_generation = CRYPTO_get_fork_generation();
 

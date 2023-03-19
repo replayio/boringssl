@@ -268,7 +268,7 @@ static void wait_for_entropy(void) {
 static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
   // Note: This is part of the same compilation unit as rand.c, so we can call RecordReplayAssert
   // here without defining it first.
-  RecordReplayAssert("fill_with_entropy %zu %d %d", len, block, seed);
+  RecordReplayAssert("[RUN-1555-1556] fill_with_entropy %zu %d %d", len, block, seed);
 
   if (len == 0) {
     return 1;
@@ -298,7 +298,7 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
   while (len > 0) {
     ssize_t r;
 
-    RecordReplayAssert("fill_with_entropy #1 %zu", len);
+    RecordReplayAssert("[RUN-1555-1556] fill_with_entropy #1 %zu", len);
 
     if (*urandom_fd_bss_get() == kHaveGetrandom) {
 #if defined(USE_NR_getrandom)
@@ -310,7 +310,7 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
         // |getentropy| can only request 256 bytes at a time.
         size_t todo = len <= 256 ? len : 256;
 
-        RecordReplayAssert("fill_with_entropy #2 %zu", todo);
+        RecordReplayAssert("[RUN-1555-1556] fill_with_entropy #2 %zu", todo);
 
         if (getentropy(out, todo) != 0) {
           r = -1;
