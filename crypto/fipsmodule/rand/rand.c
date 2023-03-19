@@ -55,7 +55,7 @@ static void RecordReplayAssert(const char* aFormat, ...) {
   if (fnptr != (void*)1) {
     va_list ap;
     va_start(ap, aFormat);
-    (void(*)(const char*, va_list))(fnptr)(aFormat, ap);
+    ((void(*)(const char*, va_list))fnptr)(aFormat, ap);
     va_end(ap);
   }
 }
