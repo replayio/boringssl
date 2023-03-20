@@ -42,7 +42,7 @@ static void* LookupRecordReplaySymbol(const char* name) {
   void* fnptr = dlsym(RTLD_DEFAULT, name);
 #else
   HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
-  void* fnptr = module ? (void*)GetProcAddress(module, name) : nullptr;
+  void* fnptr = module ? (void*)GetProcAddress(module, name) : NULL;
 #endif
   return fnptr ? fnptr : (void*)1;
 }
