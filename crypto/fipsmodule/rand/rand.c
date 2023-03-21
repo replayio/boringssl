@@ -54,7 +54,7 @@ static void* LookupRecordReplaySymbol(const char* name) {
   return fnptr ? fnptr : (void*)1;
 }
 
-static bool IsRecordingOrReplaying() {
+static int IsRecordingOrReplaying() {
   static void* fnptr;
   if (!fnptr) {
     fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
@@ -366,11 +366,11 @@ void RAND_bytes_with_additional_data(uint8_t *out, size_t out_len,
   // when replaying.
   if (IsRecordingOrReplaying()) {
 #ifdef OPENSSL_LINUX
-    getrandom(buf, len, 0);
+    getrandom(out, out_len, 0);
 #elif defined(OPENSSL_MACOS)
-    arc4random_buf(buf, len);
+    arc4random_buf(out, out_len);
 #elif defined(OPENSSL_WINDOWS)
-    ::RtlGenRandom(buf, len);
+    RtlGenRandom(out, out_len);
 #else
     #error "Unknown platform"
 #endif
