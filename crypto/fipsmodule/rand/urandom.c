@@ -267,10 +267,6 @@ static void wait_for_entropy(void) {
 // If |seed| is one, this function will OR in the value of
 // |*extra_getrandom_flags_for_seed()| when using |getrandom|.
 static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
-  // Note: This is part of the same compilation unit as rand.c, so we can call RecordReplayAssert
-  // here without defining it first.
-  RecordReplayAssert("[RUN-1555-1556] fill_with_entropy %zu %d %d", len, block, seed);
-
   if (len == 0) {
     return 1;
   }
@@ -299,8 +295,6 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
   while (len > 0) {
     ssize_t r;
 
-    RecordReplayAssert("[RUN-1555-1556] fill_with_entropy #1 %zu", len);
-
     if (*urandom_fd_bss_get() == kHaveGetrandom) {
 #if defined(USE_NR_getrandom)
       r = boringssl_getrandom(out, len, getrandom_flags);
@@ -310,9 +304,6 @@ static int fill_with_entropy(uint8_t *out, size_t len, int block, int seed) {
       if (__builtin_available(macos 10.12, *)) {
         // |getentropy| can only request 256 bytes at a time.
         size_t todo = len <= 256 ? len : 256;
-
-        RecordReplayAssert("[RUN-1555-1556] fill_with_entropy #2 %zu", todo);
-
         if (getentropy(out, todo) != 0) {
           r = -1;
         } else {
