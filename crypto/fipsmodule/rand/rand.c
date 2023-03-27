@@ -31,10 +31,17 @@
 #include "../../internal.h"
 #include "../delocate.h"
 
-#ifndef _WIN32
+#ifndef OPENSSL_WINDOWS
 #include <dlfcn.h>
+#include <sys/random.h>
 #else
 #include <windows.h>
+// #define needed to link in RtlGenRandom(), a.k.a. SystemFunction036.  See the
+// "Community Additions" comment on MSDN here:
+// http://msdn.microsoft.com/en-us/library/windows/desktop/aa387694.aspx
+#define SystemFunction036 NTAPI SystemFunction036
+#include <NTSecAPI.h>
+#undef SystemFunction036
 #endif
 
 static void* LookupRecordReplaySymbol(const char* name) {
@@ -42,22 +49,17 @@ static void* LookupRecordReplaySymbol(const char* name) {
   void* fnptr = dlsym(RTLD_DEFAULT, name);
 #else
   HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
-  void* fnptr = module ? (void*)GetProcAddress(module, name) : nullptr;
+  void* fnptr = module ? (void*)GetProcAddress(module, name) : NULL;
 #endif
   return fnptr ? fnptr : (void*)1;
 }
 
-static void RecordReplayAssert(const char* aFormat, ...) {
+static int IsRecordingOrReplaying() {
   static void* fnptr;
   if (!fnptr) {
     fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
   }
-  if (fnptr != (void*)1) {
-    va_list ap;
-    va_start(ap, aFormat);
-    ((void(*)(const char*, va_list))fnptr)(aFormat, ap);
-    va_end(ap);
-  }
+  return fnptr != (void*)1;
 }
 
 // It's assumed that the operating system always has an unfailing source of
@@ -359,7 +361,21 @@ void RAND_bytes_with_additional_data(uint8_t *out, size_t out_len,
     return;
   }
 
-  RecordReplayAssert("[RUN-1555-1556] RAND_bytes_with_additional_data %zu", out_len);
+  // When recording/replaying we just ask the system for random data. This is simpler
+  // than making sure the seed data and cross-thread interactions behave consistently
+  // when replaying.
+  if (IsRecordingOrReplaying()) {
+#ifdef OPENSSL_LINUX
+    getrandom(out, out_len, 0);
+#elif defined(OPENSSL_MACOS)
+    arc4random_buf(out, out_len);
+#elif defined(OPENSSL_WINDOWS)
+    RtlGenRandom(out, out_len);
+#else
+    #error "Unknown platform"
+#endif
+    return;
+  }
 
   const uint64_t fork_generation = CRYPTO_get_fork_generation();
 
