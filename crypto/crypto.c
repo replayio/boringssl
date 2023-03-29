@@ -17,6 +17,7 @@
 #include "fipsmodule/rand/fork_detect.h"
 #include "fipsmodule/rand/internal.h"
 #include "internal.h"
+#include "record_replay.h"
 
 
 #if !defined(OPENSSL_NO_ASM) && !defined(OPENSSL_STATIC_ARMCAP) && \
@@ -151,6 +152,16 @@ static void do_library_init(void) __attribute__ ((constructor));
 // BORINGSSL_NO_STATIC_INITIALIZER isn't defined, this is set as a static
 // initializer. Otherwise, it is called by CRYPTO_library_init.
 static void OPENSSL_CDECL do_library_init(void) {
+ // [RecordReplay] When replaying, skip calling the cpuid setup.
+ // Specific CPU features may be different between machines that a replay
+ // starts on, and a machine that it is subsequently restored from snapshot
+ // on.  This leads to illegal instructions being used by crypto code that
+ // checks cpu flags before the snapshot and then assumes they're the same
+ // after snapshot.
+ if (RecordReplay_IsReplaying()) {
+   return;
+ }
+
  // WARNING: this function may only configure the capability variables. See the
  // note above about the linker bug.
 #if defined(NEED_CPUID)

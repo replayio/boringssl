@@ -29,6 +29,7 @@
 #include "internal.h"
 #include "fork_detect.h"
 #include "../../internal.h"
+#include "../../record_replay.h"
 #include "../delocate.h"
 
 #ifndef OPENSSL_WINDOWS
@@ -43,24 +44,6 @@
 #include <NTSecAPI.h>
 #undef SystemFunction036
 #endif
-
-static void* LookupRecordReplaySymbol(const char* name) {
-#ifndef _WIN32
-  void* fnptr = dlsym(RTLD_DEFAULT, name);
-#else
-  HMODULE module = GetModuleHandleA("windows-recordreplay.dll");
-  void* fnptr = module ? (void*)GetProcAddress(module, name) : NULL;
-#endif
-  return fnptr ? fnptr : (void*)1;
-}
-
-static int IsRecordingOrReplaying() {
-  static void* fnptr;
-  if (!fnptr) {
-    fnptr = LookupRecordReplaySymbol("RecordReplayAssert");
-  }
-  return fnptr != (void*)1;
-}
 
 // It's assumed that the operating system always has an unfailing source of
 // entropy which is accessed via |CRYPTO_sysrand[_for_seed]|. (If the operating
@@ -364,7 +347,7 @@ void RAND_bytes_with_additional_data(uint8_t *out, size_t out_len,
   // When recording/replaying we just ask the system for random data. This is simpler
   // than making sure the seed data and cross-thread interactions behave consistently
   // when replaying.
-  if (IsRecordingOrReplaying()) {
+  if (RecordReplay_IsRecordingOrReplaying()) {
 #ifdef OPENSSL_LINUX
     getrandom(out, out_len, 0);
 #elif defined(OPENSSL_MACOS)
