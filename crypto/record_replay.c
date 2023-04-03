@@ -3,7 +3,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #else
-#include <libloaderapi.h>
+#include <windows.h>
 #endif
 
 static void* LookupRecordReplaySymbol(const char* name) {
