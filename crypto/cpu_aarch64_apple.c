@@ -26,7 +26,7 @@
 
 static void* LookupRecordReplaySymbol(const char* name) {
   void* fnptr = dlsym(RTLD_DEFAULT, name);
-  return fnptr ? fnptr : reinterpret_cast<void*>(1);
+  return fnptr ? fnptr : (void*)1;
 }
 
 static void RecordReplayBeginPassThroughEvents() {
@@ -35,7 +35,7 @@ static void RecordReplayBeginPassThroughEvents() {
     fnptr = LookupRecordReplaySymbol("RecordReplayBeginPassThroughEvents");
   }
   if (fnptr != (void*)1) {
-    (void(*)())(fnptr)();
+    ((void(*)())fnptr)();
   }
 }
 
@@ -45,7 +45,7 @@ static void RecordReplayEndPassThroughEvents() {
     fnptr = LookupRecordReplaySymbol("RecordReplayEndPassThroughEvents");
   }
   if (fnptr != (void*)1) {
-    (void(*)())(fnptr)();
+    ((void(*)())fnptr)();
   }
 }
 
