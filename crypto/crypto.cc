@@ -20,6 +20,7 @@
 #include "bcm_support.h"
 #include "fipsmodule/rand/internal.h"
 #include "internal.h"
+#include "record_replay.h"
 
 
 using namespace bssl;
@@ -86,7 +87,16 @@ uint32_t bssl::OPENSSL_get_armcap() {
 
 #if defined(NEED_CPUID)
 static bssl::CRYPTO_once_t once = CRYPTO_ONCE_INIT;
-void bssl::OPENSSL_init_cpuid() { CRYPTO_once(&once, OPENSSL_cpuid_setup); }
+void bssl::OPENSSL_init_cpuid() {
+  // [RecordReplay] Skip cpuid setup when replaying. CPU features can differ
+  // between the machine a recording was made on and one a replay/snapshot is
+  // restored on; assuming they match leads to illegal instructions in crypto
+  // code that gates on cpu flags.
+  if (RecordReplay_IsReplaying()) {
+    return;
+  }
+  CRYPTO_once(&once, OPENSSL_cpuid_setup);
+}
 #endif
 
 void CRYPTO_library_init() {}
