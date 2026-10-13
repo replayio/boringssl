@@ -1465,9 +1465,6 @@ DEFINE_METHOD_FUNCTION(EVP_AEAD, EVP_aead_aes_256_gcm_tls13) {
   out->open_gather = aead_aes_gcm_open_gather;
 }
 
-// [RecordReplay] Replaying skips OPENSSL_cpuid_setup (see do_library_init),
-// so the capabilities read as absent there, while cipher suite preferences in
-// libssl (and QUIC) depend on this result. The replay uses the recorded result.
 static int EVP_has_aes_hardware_impl(void) {
 #if defined(OPENSSL_X86) || defined(OPENSSL_X86_64)
   return hwaes_capable() && crypto_gcm_clmul_enabled();
@@ -1480,6 +1477,9 @@ static int EVP_has_aes_hardware_impl(void) {
 #endif
 }
 
+// [RecordReplay] Replaying skips OPENSSL_cpuid_setup (see do_library_init),
+// so the capabilities read as absent there, while libssl's cipher suite
+// preferences depend on this result. The replay uses the recorded result.
 int EVP_has_aes_hardware(void) {
   return (int)RecordReplay_Value("EVP_has_aes_hardware",
                                  EVP_has_aes_hardware_impl());
