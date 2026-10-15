@@ -36,3 +36,16 @@ int RecordReplay_IsReplaying(void) {
   typedef int (*RecordReplayIsReplayingFn)(void);
   return ((RecordReplayIsReplayingFn)fnptr)();
 }
+
+uintptr_t RecordReplay_Value(const char* why, uintptr_t value) {
+  static void* fnptr;
+  if (!fnptr) {
+    fnptr = LookupRecordReplaySymbol("RecordReplayValue");
+  }
+  if (fnptr == (void*)1) {
+    return value;
+  }
+
+  typedef uintptr_t (*RecordReplayValueFn)(const char*, uintptr_t);
+  return ((RecordReplayValueFn)fnptr)(why, value);
+}
