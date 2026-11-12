@@ -24,6 +24,7 @@
 #include <openssl/nid.h>
 
 #include "../../internal.h"
+#include "../../record_replay.h"
 #include "../aes/internal.h"
 #include "../bcm_interface.h"
 #include "../delocate.h"
@@ -1224,7 +1225,7 @@ DEFINE_METHOD_FUNCTION(EVP_AEAD, EVP_aead_aes_256_gcm_tls13) {
   out->open_gather = aead_aes_gcm_open_gather;
 }
 
-int EVP_has_aes_hardware(void) {
+static int EVP_has_aes_hardware_impl(void) {
 #if defined(OPENSSL_X86) || defined(OPENSSL_X86_64)
   return hwaes_capable() && crypto_gcm_clmul_enabled();
 #elif defined(OPENSSL_ARM) || defined(OPENSSL_AARCH64)
@@ -1232,4 +1233,12 @@ int EVP_has_aes_hardware(void) {
 #else
   return 0;
 #endif
+}
+
+// [RecordReplay] Replaying skips OPENSSL_cpuid_setup (see OPENSSL_init_cpuid),
+// so the capabilities read as absent there, while libssl's cipher suite
+// preferences depend on this result. The replay uses the recorded result.
+int EVP_has_aes_hardware(void) {
+  return (int)RecordReplay_Value("EVP_has_aes_hardware",
+                                 EVP_has_aes_hardware_impl());
 }
