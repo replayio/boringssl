@@ -393,6 +393,7 @@ crypto_sources = [
   "crypto/rand_extra/urandom.c",
   "crypto/rand_extra/windows.c",
   "crypto/rc4/rc4.c",
+  "crypto/record_replay.c",
   "crypto/refcount.c",
   "crypto/rsa_extra/rsa_asn1.c",
   "crypto/rsa_extra/rsa_crypt.c",
