@@ -20,6 +20,32 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 
+#include <dlfcn.h>
+
+static void* LookupRecordReplaySymbol(const char* name) {
+  void* fnptr = dlsym(RTLD_DEFAULT, name);
+  return fnptr ? fnptr : (void*)1;
+}
+
+static void RecordReplayBeginPassThroughEvents() {
+  static void* fnptr;
+  if (!fnptr) {
+    fnptr = LookupRecordReplaySymbol("RecordReplayBeginPassThroughEvents");
+  }
+  if (fnptr != (void*)1) {
+    ((void(*)())fnptr)();
+  }
+}
+
+static void RecordReplayEndPassThroughEvents() {
+  static void* fnptr;
+  if (!fnptr) {
+    fnptr = LookupRecordReplaySymbol("RecordReplayEndPassThroughEvents");
+  }
+  if (fnptr != (void*)1) {
+    ((void(*)())fnptr)();
+  }
+}
 
 static int has_hw_feature(const char *name) {
   int value;
@@ -54,6 +80,9 @@ void OPENSSL_cpuid_setup(void) {
   OPENSSL_armcap_P =
       ARMV7_NEON | ARMV8_AES | ARMV8_PMULL | ARMV8_SHA1 | ARMV8_SHA256;
 
+  // Replaying will happen on x64 where the sysctl calls below won't occur.
+  RecordReplayBeginPassThroughEvents();
+
   // See Apple's documentation for sysctl names:
   // https://developer.apple.com/documentation/kernel/1387446-sysctlbyname/determining_instruction_set_characteristics
   //
@@ -68,6 +97,8 @@ void OPENSSL_cpuid_setup(void) {
       has_hw_feature("hw.optional.armv8_2_sha512")) {
     OPENSSL_armcap_P |= ARMV8_SHA512;
   }
+
+  RecordReplayEndPassThroughEvents();
 }
 
 #endif  // OPENSSL_AARCH64 && OPENSSL_APPLE && !OPENSSL_STATIC_ARMCAP
