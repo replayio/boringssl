@@ -145,6 +145,9 @@ static void rand_thread_state_free(void *state_in) {
 // rdrand should only be called if either |have_rdrand| or |have_fast_rdrand|
 // returned true.
 static int rdrand(uint8_t *buf, const size_t len) {
+  // Disabled for record/replay. rdrand instructions break rr.
+  return 0;
+
   const size_t len_multiple8 = len & ~7;
   if (!CRYPTO_rdrand_multiple8_buf(buf, len_multiple8)) {
     return 0;
