@@ -25,10 +25,23 @@
 #include <openssl/mem.h>
 
 #include "../../bcm_support.h"
+#include "../../record_replay.h"
 #include "../bcm_interface.h"
 #include "../delocate.h"
 #include "internal.h"
 
+#ifndef OPENSSL_WINDOWS
+#include <dlfcn.h>
+#include <sys/random.h>
+#else
+#include <windows.h>
+// #define needed to link in RtlGenRandom(), a.k.a. SystemFunction036.  See the
+// "Community Additions" comment on MSDN here:
+// http://msdn.microsoft.com/en-us/library/windows/desktop/aa387694.aspx
+#define SystemFunction036 NTAPI SystemFunction036
+#include <NTSecAPI.h>
+#undef SystemFunction036
+#endif
 
 // It's assumed that the operating system always has an unfailing source of
 // entropy which is accessed via |CRYPTO_sysrand[_for_seed]|. (If the operating
@@ -329,6 +342,22 @@ static void rand_get_seed(struct rand_thread_state *state,
 bcm_infallible BCM_rand_bytes_with_additional_data(
     uint8_t *out, size_t out_len, const uint8_t user_additional_data[32]) {
   if (out_len == 0) {
+    return bcm_infallible_approved;
+  }
+
+  // When recording/replaying we just ask the system for random data. This is simpler
+  // than making sure the seed data and cross-thread interactions behave consistently
+  // when replaying.
+  if (RecordReplay_IsRecordingOrReplaying()) {
+#ifdef OPENSSL_LINUX
+    getrandom(out, out_len, 0);
+#elif defined(OPENSSL_MACOS)
+    arc4random_buf(out, out_len);
+#elif defined(OPENSSL_WINDOWS)
+    RtlGenRandom(out, out_len);
+#else
+    #error "Unknown platform"
+#endif
     return bcm_infallible_approved;
   }
 
