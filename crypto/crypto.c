@@ -19,6 +19,7 @@
 #include "fipsmodule/rand/fork_detect.h"
 #include "fipsmodule/rand/internal.h"
 #include "internal.h"
+#include "record_replay.h"
 
 
 static_assert(sizeof(ossl_ssize_t) == sizeof(size_t),
@@ -118,7 +119,18 @@ uint32_t OPENSSL_get_armcap(void) {
 
 #if defined(NEED_CPUID)
 static CRYPTO_once_t once = CRYPTO_ONCE_INIT;
-void OPENSSL_init_cpuid(void) { CRYPTO_once(&once, OPENSSL_cpuid_setup); }
+void OPENSSL_init_cpuid(void) {
+  // [RecordReplay] When replaying, skip calling the cpuid setup.
+  // Specific CPU features may be different between machines that a replay
+  // starts on, and a machine that it is subsequently restored from snapshot
+  // on.  This leads to illegal instructions being used by crypto code that
+  // checks cpu flags before the snapshot and then assumes they're the same
+  // after snapshot.
+  if (RecordReplay_IsReplaying()) {
+    return;
+  }
+  CRYPTO_once(&once, OPENSSL_cpuid_setup);
+}
 #endif
 
 void CRYPTO_library_init(void) {}
