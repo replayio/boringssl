@@ -306,6 +306,7 @@
             "crypto/rand_extra/urandom.cc",
             "crypto/rand_extra/windows.cc",
             "crypto/rc4/rc4.cc",
+            "crypto/record_replay.cc",
             "crypto/refcount.cc",
             "crypto/rsa_extra/rsa_asn1.cc",
             "crypto/rsa_extra/rsa_crypt.cc",
