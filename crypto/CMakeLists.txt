@@ -207,6 +207,7 @@ add_library(
   rand_extra/trusty.c
   rand_extra/windows.c
   rc4/rc4.c
+  record_replay.c
   refcount.c
   rsa_extra/rsa_asn1.c
   rsa_extra/rsa_crypt.c
