@@ -434,6 +434,7 @@ boringssl_crypto_sources := \
   crypto/rand/urandom.cc \
   crypto/rand/windows.cc \
   crypto/rc4/rc4.cc \
+  crypto/record_replay.c \
   crypto/refcount.cc \
   crypto/rsa/rsa_asn1.cc \
   crypto/rsa/rsa_crypt.cc \
