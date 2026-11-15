@@ -365,7 +365,15 @@ bcm_infallible bssl::BCM_rand_bytes_with_additional_data(
   // when replaying.
   if (RecordReplay_IsRecordingOrReplaying()) {
 #ifdef OPENSSL_LINUX
-    [[maybe_unused]] ssize_t ret = getrandom(out, out_len, 0);
+    // getrandom can return fewer bytes than asked for.
+    size_t done = 0;
+    while (done < out_len) {
+      ssize_t got = getrandom(out + done, out_len - done, 0);
+      if (got <= 0) {
+        abort();
+      }
+      done += static_cast<size_t>(got);
+    }
 #elif defined(OPENSSL_MACOS)
     arc4random_buf(out, out_len);
 #elif defined(OPENSSL_WINDOWS)
